@@ -2,6 +2,9 @@ import math
 import sys
 import time
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from bzrc import BZRC, Command
 
 class pf_agent(object):
@@ -97,9 +100,43 @@ class pf_agent(object):
         repulsive_force = (1.0 / distance) * const
         return repulsive_force, repulsive_force
 
+    def plot_potential_field(self):
+        # number of points on potential fields graph
+        num_points = 30
+        # scale the world size down to graph
+        grid_step = int(self.constants['worldsize']) / num_points
+        world_size = int(self.constants['worldsize']) / 2
+
+        # x y arrow locations on graph
+        x = np.linspace(-world_size, world_size, num_points)
+        y = np.linspace(-world_size, world_size, num_points)
+
+        # 2d arrays, x y component of arrows at each point
+        dx = np.zeros(shape=(num_points, num_points))
+        dy = np.zeros(shape=(num_points, num_points))
+
+        # skip = (slice(None, None, grid_step), slice(None, None, grid_step))
+        for i in range(-world_size, world_size - grid_step, grid_step):
+            for j in range(-world_size, world_size - grid_step, grid_step):
+                curr_dx, curr_dy = self.calc_potential_field(i, j)
+                row = (i + world_size)/grid_step
+                col = (j + world_size)/grid_step
+
+                dx[row][col] = curr_dx
+                dy[row][col] = curr_dy
+
+        fig, ax = plt.subplots()
+        ax.quiver(x, y, dx, dy, color='black', headwidth=3, headlength=5)
+
+        plt.savefig('field.png')
+        plt.show()
+
+
 
 def calc_distance(x1, x2, y1, y2):
     distance = math.sqrt(math.pow((x1 - x2), 2) + math.pow((y1 - y2), 2))
+    if distance == 0:
+        distance = 1
     return distance
 
 def main():
@@ -121,11 +158,16 @@ def main():
 
     prev_time = time.time()
 
+    # test plotting fields
+    agent.tick(0.00)
+    agent.plot_potential_field()
+
     # Run the agent
     try:
         while True:
             time_diff = time.time() - prev_time
             agent.tick(time_diff)
+            break
     except KeyboardInterrupt:
         print "Exiting due to keyboard interrupt."
         bzrc.close()
