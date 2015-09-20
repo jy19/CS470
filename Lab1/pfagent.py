@@ -8,7 +8,11 @@ class pf_agent(object):
     def __init__(self, bzrc):
         self.bzrc = bzrc
         self.constants = self.bzrc.get_constants()
+        self.obstacles = self.bzrc.get_obstacles() # put this here since obstacles don't move, only have to get once
+        # obstacles is list of list
+        # print self.obstacles
         self.commands = []
+
 
     def tick(self, time_diff):
         """Some time has passed; decide what to do next."""
@@ -21,6 +25,7 @@ class pf_agent(object):
 
         self.commands = []
 
+        # todo check that if tank is holding a flag, return to base (Base is goal instead)
         for tank in mytanks:
             self.move_potential_field(tank)
 
@@ -54,21 +59,27 @@ class pf_agent(object):
     def calc_potential_field(self, tank_x, tank_y):
         delta_x = 0
         delta_y = 0
-        enemy_flag = None
         # temporarily grabs first flag that is not own color
         for flag in self.flags:
             # todo calculate flags' attractive field
             if flag.color != self.constants['team']:
-                print flag.color
-                enemy_flag = flag
+                attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, flag)
+                delta_x += attractive_x
+                delta_y += attractive_y
                 break
-        attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, enemy_flag)
-        delta_x += attractive_x
-        delta_y += attractive_y
+
+        for obstacle in self.obstacles:
+            # find mid-point of rectangle (they seem to be squares)
+            obstacle_x = (obstacle[0][0] + obstacle[2][0]) / 2.0
+            obstacle_y = (obstacle[0][1] + obstacle[1][1]) / 2.0
+            repulsive_x, repulsive_y = self.repulsive_field(tank_x, tank_y, obstacle_x, obstacle_y)
+            delta_x += repulsive_x
+            delta_y += repulsive_y
+
         return delta_x, delta_y
 
     def attractive_field(self, tank_x, tank_y, flag):
-        """ calculates the attractive field created by enemy flags """
+        """ calculates the attractive field created by 'goals' """
         # temporary function for calculating attractive field..distance times some constant
         # so the farther away the tank is, the stronger the attractive field
         const = 10
@@ -77,10 +88,14 @@ class pf_agent(object):
         return attractive_force, attractive_force
 
     def repulsive_field(self, tank_x, tank_y, obstacle_x, obstacle_y):
+        """ calculates repulsive field created by obstacles """
         # for now repulsion is inverse of distance to the obstacle
         # so as tank approaches obstacle, the repulsive force approaches infinite
+        # some constant to make the repulsive force stronger
+        const = 5
         distance = calc_distance(tank_x, obstacle_x, tank_y, obstacle_y)
-        repulsive_force = (1.0 / distance)
+        repulsive_force = (1.0 / distance) * const
+        return repulsive_force, repulsive_force
 
 
 def calc_distance(x1, x2, y1, y2):
