@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from bzrc import BZRC, Command
+from pd_controller import PDController
 
 
-class pf_agent(object):
+class pfAgent(object):
     def __init__(self, bzrc):
         self.bzrc = bzrc
         self.constants = self.bzrc.get_constants()
@@ -37,18 +38,21 @@ class pf_agent(object):
 
         self.commands = []
 
-        # todo check that if tank is holding a flag, return to base (Base is goal instead)
-        tank = mytanks[0]
-        self.move_potential_field(tank, self.enemy_color[0])
-        # for tank in mytanks:
-        #     self.move_potential_field(tank, self.enemy_color[0])
-        # split tanks up and send after different teams
-        # if tank.index < 3:
-        #     self.move_potential_field(tank, self.enemy_color[0])
-        # elif 3 <= tank.index < 6:
-        #     self.move_potential_field(tank, self.enemy_color[1])
-        # else:
-        #     self.move_potential_field(tank, self.enemy_color[2])
+        for tank in mytanks:
+            # give each tank a controller
+            # if not tank.controller:
+            #     tank.controller = PDController()
+            try:
+                tank.controller
+            except AttributeError:
+                tank.controller = PDController()
+            # split tanks up and send after different teams
+            if tank.index < 3:
+                self.move_potential_field(tank, self.enemy_color[0])
+            elif 3 <= tank.index < 6:
+                self.move_potential_field(tank, self.enemy_color[1])
+            else:
+                self.move_potential_field(tank, self.enemy_color[2])
 
         # for tank in mytanks:
         #     self.attack_enemies(tank)
@@ -60,7 +64,9 @@ class pf_agent(object):
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
-        command = Command(tank.index, 1, 2 * relative_angle, True)
+        adjusted_angvel = tank.controller.calc_error(relative_angle)
+        # command = Command(tank.index, 1, 2 * relative_angle, True)
+        command = Command(tank.index, 1, adjusted_angvel, True)
         self.commands.append(command)
 
     def normalize_angle(self, angle):
@@ -72,13 +78,15 @@ class pf_agent(object):
             angle -= 2 * math.pi
         return angle
 
+    def get_flag(self, color):
+        for flag in self.flags:
+            if flag.color == color:
+                return flag
+        return None
+
     def move_potential_field(self, tank, flag_color):
         """ moves a tank based on the potential field exerted on that tank at the tick"""
-        if tank.flag != '-':
-            delta_x, delta_y = self.calc_potential_field(tank.x, tank.y, True, flag_color)
-        else:
-            delta_x, delta_y = self.calc_potential_field(tank.x, tank.y, False, flag_color)
-
+        delta_x, delta_y = self.calc_potential_field(tank.x, tank.y, tank.flag != "-", flag_color)
         self.move_to_position(tank, tank.x + delta_x, tank.y + delta_y)
 
     def calc_potential_field(self, tank_x, tank_y, has_flag, flag_color):
@@ -90,29 +98,34 @@ class pf_agent(object):
             base_midpoint_y = (self.base.corner1_y + self.base.corner3_y) / 2.0
             attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, base_midpoint_x, base_midpoint_y,
                                                                calc_distance(self.base.corner1_x, self.base.corner3_x,
-                                                                             self.base.corner1_y, self.base.corner3_y))
-
+                                                                             self.base.corner1_y,
+                                                                             self.base.corner3_y) / 2.0)
             delta_x += attractive_x
             delta_y += attractive_y
         else:
-            for flag in self.flags:
-                if flag.color == flag_color:
-                    attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, flag.x, flag.y,
-                                                                       float(self.constants['flagradius']))
-                    delta_x += attractive_x
-                    delta_y += attractive_y
+            flag = self.get_flag(flag_color)
+            attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, flag.x, flag.y,
+                                                               float(self.constants['flagradius']))
+            delta_x += attractive_x
+            delta_y += attractive_y
 
-        # for obstacle in self.obstacles:
-        #     # find mid-point of rectangle (they seem to be squares)
-        #     obstacle_x = (obstacle[0][0] + obstacle[2][0]) / 2.0
-        #     obstacle_y = (obstacle[0][1] + obstacle[1][1]) / 2.0
-        #     obstacle_radius = 50
-        #     repulsive_x, repulsive_y = self.repulsive_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
-        #     delta_x += repulsive_x
-        #     delta_y += repulsive_y
-        #     tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
-        #     delta_x += tangential_x
-        #     delta_y += tangential_y
+        for obstacle in self.obstacles:
+            # find mid-point of rectangle (they seem to be squares)
+            obstacle_x = (obstacle[0][0] + obstacle[2][0]) / 2.0
+            obstacle_y = (obstacle[0][1] + obstacle[1][1]) / 2.0
+            obstacle_radius = 50
+            repulsive_x, repulsive_y = self.repulsive_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
+            delta_x += repulsive_x
+            delta_y += repulsive_y
+            tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
+            delta_x += tangential_x
+            delta_y += tangential_y
+
+        if math.isnan(delta_x):
+            delta_x = 0
+        if math.isnan(delta_y):
+            delta_y = 0
+
         return delta_x, delta_y
 
     def attractive_field(self, tank_x, tank_y, goal_x, goal_y, goal_radius):
@@ -130,7 +143,7 @@ class pf_agent(object):
 
         if distance < goal_radius:
             delta_x = delta_y = 0
-        elif goal_radius <= distance and distance <= (goal_radius + goal_spread):
+        elif goal_radius <= distance <= (goal_radius + goal_spread):
             delta_x = alpha_const * (distance - goal_radius) * math.cos(theta)
             delta_y = alpha_const * (distance - goal_radius) * math.sin(theta)
         elif distance > (goal_radius + goal_spread):
@@ -142,7 +155,7 @@ class pf_agent(object):
         """ calculates repulsive field created by obstacles """
         delta_x = delta_y = 0
         beta_const = 0.5
-        obstacle_spread = 50
+        obstacle_spread = 100
         # distance = calc_distance(tank_x, obstacle_x, tank_y, obstacle_y)
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
         theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y)
@@ -163,11 +176,11 @@ class pf_agent(object):
         # could basically be repulsive field but with angle changed?
         delta_x = delta_y = 0
         beta_const = 0.5
-        obstacle_spread = 50
+        obstacle_spread = 100
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
         # rotate theta by 90 degrees
         # todo figure out which way is better.. (clockwise, counter clockwise)
-        theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + deg2rad(90)
+        theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + (math.pi / 2.0)
 
         if distance < obstacle_radius:
             delta_x = -1.0 * math.copysign(1.0, math.cos(theta)) * float("inf")
@@ -220,13 +233,6 @@ def calc_theta(x1, x2, y1, y2):
     theta = math.atan2((y2 - y1), (x2 - x1))
     return theta
 
-
-def deg2rad(degrees):
-    # converts degrees to radians
-    radians = math.pi * degrees / 180.0
-    return radians
-
-
 def main():
     # Process CLI arguments.
     try:
@@ -242,7 +248,7 @@ def main():
     bzrc = BZRC(host, int(port))
 
     # agent = Agent(bzrc)
-    agent = pf_agent(bzrc)
+    agent = pfAgent(bzrc)
 
     prev_time = time.time()
 
@@ -250,17 +256,12 @@ def main():
     agent.tick(0.00)
     agent.plot_potential_field()
 
-    dx1, dy1 = agent.attractive_field(-400, -400, 400, 0, 2.5)
-    print dx1, dy1
-    dx, dy = agent.calc_potential_field(-400, -400, False, 'green')
-    print dx, dy
-
     # Run the agent
     try:
         while True:
             time_diff = time.time() - prev_time
             agent.tick(time_diff)
-            break
+            # break
     except KeyboardInterrupt:
         print "Exiting due to keyboard interrupt."
         bzrc.close()
