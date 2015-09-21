@@ -126,6 +126,16 @@ class pfAgent(object):
         if math.isnan(delta_y):
             delta_y = 0
 
+        # put tangential field around enemy tanks
+        for enemy in self.enemies:
+            # print enemy.x, enemy.y
+            obstacle_x = enemy.x
+            obstacle_y = enemy.y
+            obstacle_radius = float(self.constants['tankradius'])
+            tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, 5)
+            delta_x += tangential_x
+            delta_y += tangential_y
+
         return delta_x, delta_y
 
     def attractive_field(self, tank_x, tank_y, goal_x, goal_y, goal_radius):
@@ -137,7 +147,6 @@ class pfAgent(object):
 
         # distance between agent and goal
         distance = calc_distance(goal_x, tank_x, tank_y, goal_y)
-        # distance = calc_distance(goal_x, tank_x, goal_y, tank_y)
         # angle between agent and goal
         theta = calc_theta(tank_x, goal_x, tank_y, goal_y)
 
@@ -161,8 +170,8 @@ class pfAgent(object):
         theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y)
 
         if distance < obstacle_radius:
-            delta_x = -1.0 * math.copysign(1.0, math.cos(theta)) * float("inf")
-            delta_y = -1.0 * math.copysign(1.0, math.sin(theta)) * float("inf")
+            delta_x = -1.0 * math.copysign(float('inf'), math.cos(theta))
+            delta_y = -1.0 * math.copysign(float('inf'), math.sin(theta))
         elif obstacle_radius <= distance <= (obstacle_radius + obstacle_spread):
             delta_x = -1.0 * beta_const * (obstacle_spread + obstacle_radius - distance) * math.cos(theta)
             delta_y = -1.0 * beta_const * (obstacle_spread + obstacle_radius - distance) * math.sin(theta)
@@ -171,20 +180,17 @@ class pfAgent(object):
         # repulsive_force = (1.0 / distance) * const
         return delta_x, delta_y
 
-    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius):
+    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, obstacle_spread = 100):
         """ calculates tangential fields around obstacles """
         # could basically be repulsive field but with angle changed?
         delta_x = delta_y = 0
         beta_const = 0.5
-        obstacle_spread = 100
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
-        # rotate theta by 90 degrees
-        # todo figure out which way is better.. (clockwise, counter clockwise)
-        theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + (math.pi / 2.0)
-
+        # add 90 degrees to theta
+        theta = self.normalize_angle(calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + (math.pi / 2.0))
         if distance < obstacle_radius:
-            delta_x = -1.0 * math.copysign(1.0, math.cos(theta)) * float("inf")
-            delta_y = -1.0 * math.copysign(1.0, math.sin(theta)) * float("inf")
+            delta_x = -1.0 * math.copysign(float('inf'), math.cos(theta))
+            delta_y = -1.0 * math.copysign(float('inf'), math.sin(theta))
         elif obstacle_radius <= distance <= (obstacle_radius + obstacle_spread):
             delta_x = -1.0 * beta_const * (obstacle_spread + obstacle_radius - distance) * math.cos(theta)
             delta_y = -1.0 * beta_const * (obstacle_spread + obstacle_radius - distance) * math.sin(theta)
