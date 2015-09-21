@@ -97,10 +97,13 @@ class pf_agent(object):
             # find mid-point of rectangle (they seem to be squares)
             obstacle_x = (obstacle[0][0] + obstacle[2][0]) / 2.0
             obstacle_y = (obstacle[0][1] + obstacle[1][1]) / 2.0
-            obstacle_radius = 40 # tank radii are ~4..since obstacles a lot bigger..
+            obstacle_radius = 50
             repulsive_x, repulsive_y = self.repulsive_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
             delta_x += repulsive_x
             delta_y += repulsive_y
+            tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
+            delta_x += tangential_x
+            delta_y += tangential_y
         return delta_x, delta_y
 
     def attractive_field(self, tank_x, tank_y, goal_x, goal_y, goal_radius):
@@ -110,8 +113,10 @@ class pf_agent(object):
         goal_spread = 150
         alpha_const = 5.0
 
+        # distance between agent and goal
         distance = calc_distance(goal_x, tank_x, tank_y, goal_y)
         # distance = calc_distance(goal_x, tank_x, goal_y, tank_y)
+        # angle between agent and goal
         theta = calc_theta(tank_x, goal_x, tank_y, goal_y)
 
         if distance < goal_radius:
@@ -142,6 +147,26 @@ class pf_agent(object):
         elif distance > (obstacle_radius + obstacle_spread):
             delta_x = delta_y = 0
         # repulsive_force = (1.0 / distance) * const
+        return delta_x, delta_y
+
+    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius):
+        """ calculates tangential fields around obstacles """
+        # could basically be repulsive field but with angle changed?
+        delta_x = delta_y = 0
+        beta_const = 0.5
+        obstacle_spread = 50
+        distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
+        # rotate theta by 90 degrees
+        theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + deg2rad(90)
+
+        if distance < obstacle_radius:
+            delta_x = -1.0 * math.copysign(1.0, math.cos(theta)) * float("inf")
+            delta_y = -1.0 * math.copysign(1.0, math.sin(theta)) * float("inf")
+        elif obstacle_radius <= distance <= (obstacle_radius + obstacle_spread):
+            delta_x = -1.0 * beta_const * (obstacle_spread + obstacle_radius - distance) * math.cos(theta)
+            delta_y = -1.0 * beta_const * (obstacle_spread + obstacle_radius - distance) * math.sin(theta)
+        elif distance > (obstacle_radius + obstacle_spread):
+            delta_x = delta_y = 0
         return delta_x, delta_y
 
     def plot_potential_field(self):
@@ -184,6 +209,11 @@ def calc_distance(x1, x2, y1, y2):
 def calc_theta(x1, x2, y1, y2):
     theta = math.atan2((y2 - y1), (x2 - x1))
     return theta
+
+def deg2rad(degrees):
+    # converts degrees to radians
+    radians = math.pi * degrees / 180.0
+    return radians
 
 def main():
     # Process CLI arguments.
