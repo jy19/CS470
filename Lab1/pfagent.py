@@ -142,7 +142,7 @@ class pfAgent(object):
         """ calculates the attractive field created by 'goals' """
         # implement the equations from that one reading..
         delta_x, delta_y = 0, 0
-        goal_spread = 200
+        goal_spread = 100
         alpha_const = 5.0
 
         # distance between agent and goal
@@ -163,7 +163,7 @@ class pfAgent(object):
     def repulsive_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius):
         """ calculates repulsive field created by obstacles """
         delta_x = delta_y = 0
-        beta_const = 0.5
+        beta_const = 1
         obstacle_spread = 100
         # distance = calc_distance(tank_x, obstacle_x, tank_y, obstacle_y)
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
@@ -184,7 +184,7 @@ class pfAgent(object):
         """ calculates tangential fields around obstacles """
         # could basically be repulsive field but with angle changed?
         delta_x = delta_y = 0
-        beta_const = 0.5
+        beta_const = 5.0
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
         # add 90 degrees to theta
         theta = self.normalize_angle(calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + (math.pi / 2.0))
@@ -216,7 +216,7 @@ class pfAgent(object):
         # skip = (slice(None, None, grid_step), slice(None, None, grid_step))
         for i in range(-world_size, world_size - grid_step, grid_step):
             for j in range(-world_size, world_size - grid_step, grid_step):
-                curr_dx, curr_dy = self.calc_potential_field(i, j, False, self.enemy_color[0])
+                curr_dx, curr_dy = self.calc_potential_field(i, j, False, 'green')
                 row = (i + world_size) / grid_step
                 col = (j + world_size) / grid_step
 
