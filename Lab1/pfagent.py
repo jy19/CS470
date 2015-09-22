@@ -105,7 +105,7 @@ class pfAgent(object):
         else:
             flag = self.get_flag(flag_color)
             attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, flag.x, flag.y,
-                                                               float(self.constants['flagradius']))
+                                                               float(self.constants['flagradius']), 8)
             delta_x += attractive_x
             delta_y += attractive_y
 
@@ -114,7 +114,7 @@ class pfAgent(object):
             obstacle_x = (obstacle[0][0] + obstacle[2][0]) / 2.0
             obstacle_y = (obstacle[0][1] + obstacle[1][1]) / 2.0
             obstacle_radius = 50
-            repulsive_x, repulsive_y = self.repulsive_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
+            repulsive_x, repulsive_y = self.repulsive_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, 50, 0.5)
             delta_x += repulsive_x
             delta_y += repulsive_y
             tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius)
@@ -132,18 +132,16 @@ class pfAgent(object):
             obstacle_x = enemy.x
             obstacle_y = enemy.y
             obstacle_radius = float(self.constants['tankradius'])
-            tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, 5)
+            tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, 5, 2)
             delta_x += tangential_x
             delta_y += tangential_y
 
         return delta_x, delta_y
 
-    def attractive_field(self, tank_x, tank_y, goal_x, goal_y, goal_radius):
+    def attractive_field(self, tank_x, tank_y, goal_x, goal_y, goal_radius, goal_spread=100, alpha_const=5.0):
         """ calculates the attractive field created by 'goals' """
         # implement the equations from that one reading..
         delta_x, delta_y = 0, 0
-        goal_spread = 100
-        alpha_const = 5.0
 
         # distance between agent and goal
         distance = calc_distance(goal_x, tank_x, tank_y, goal_y)
@@ -160,11 +158,9 @@ class pfAgent(object):
             delta_y = alpha_const * goal_spread * math.sin(theta)
         return delta_x, delta_y
 
-    def repulsive_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius):
+    def repulsive_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, obstacle_spread=100, beta_const=1):
         """ calculates repulsive field created by obstacles """
         delta_x = delta_y = 0
-        beta_const = 1
-        obstacle_spread = 100
         # distance = calc_distance(tank_x, obstacle_x, tank_y, obstacle_y)
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
         theta = calc_theta(tank_x, obstacle_x, tank_y, obstacle_y)
@@ -180,11 +176,10 @@ class pfAgent(object):
         # repulsive_force = (1.0 / distance) * const
         return delta_x, delta_y
 
-    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, obstacle_spread = 100):
+    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, obstacle_spread = 50, beta_const=2.5):
         """ calculates tangential fields around obstacles """
         # could basically be repulsive field but with angle changed?
         delta_x = delta_y = 0
-        beta_const = 5.0
         distance = calc_distance(obstacle_x, tank_x, tank_y, obstacle_y)
         # add 90 degrees to theta
         theta = self.normalize_angle(calc_theta(tank_x, obstacle_x, tank_y, obstacle_y) + (math.pi / 2.0))
@@ -259,8 +254,8 @@ def main():
     prev_time = time.time()
 
     # test plotting fields
-    agent.tick(0.00)
-    agent.plot_potential_field()
+    # agent.tick(0.00)
+    # agent.plot_potential_field()
 
     # Run the agent
     try:
