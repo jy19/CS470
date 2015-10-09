@@ -11,7 +11,6 @@ def distance(vfrom, vto):
 
 
 def map_create(title, graph, frontier, visited, came_from, start, active, goal):
-
     f = pyplot.figure(0)
     pyplot.close()
     f = pyplot.figure(0)
@@ -41,6 +40,7 @@ def map_create(title, graph, frontier, visited, came_from, start, active, goal):
         last = came_from[last]
     pyplot.savefig("{0}.png".format(title))
 
+
 '''
 A WeightedDirectedGraph is a graph of vertexes and directed, weighted edges.
 A vertex can be anything, but must be equatable and hashable. Edges can always
@@ -53,6 +53,7 @@ class WeightedDirectedGraph:
         self.graph = {}
 
     '''vertex can be anything that is hashable'''
+
     def addVertex(self, vertex):
         if self.graph.has_key(vertex):
             raise Exception('Key already exists')
@@ -60,15 +61,17 @@ class WeightedDirectedGraph:
         self.graph[vertex] = []
 
     '''an edge is a weighted path between two vertices'''
+
     def addEdge(self, vfrom, vto, weight):
         if not self.graph.has_key(vfrom):
             raise Exception("Start vertex is not known to the graph: {0}".format(vfrom))
         if not self.graph.has_key(vto):
             raise Exception("End vertex is not known to the graph: {0}".format(vto))
         # print "Adding edge: {0} -> {1}; weight={2}".format(vfrom, vto, weight)
-        self.graph[vfrom].append( (vto, weight) )
+        self.graph[vfrom].append((vto, weight))
 
     '''implements the A* search algorithm'''
+
     def aStarSearch(self, start, goal):
         if not self.graph.has_key(start) or not self.graph.has_key(goal):
             raise Exception("Start and goal are not both vertexes in graph")
@@ -100,11 +103,12 @@ class WeightedDirectedGraph:
             # grab the most promising step in the frontier
             cost, g, current = heapq.heappop(frontier)
 
-            map_create("astar_{0:04}".format(i), self.graph, map(lambda x : x[2], frontier), visited, came_from, start, current, goal)
+            map_create("astar_{0:04}".format(i), self.graph, map(lambda x: x[2], frontier), visited, came_from, start,
+                       current, goal)
 
             # if it's the goal, we win! trace the path
             if current == goal:
-                path = [ goal ]
+                path = [goal]
                 while path[-1] != start:
                     path.append(came_from[path[-1]])
                 path.reverse()
@@ -121,8 +125,8 @@ class WeightedDirectedGraph:
                 reach_cost = g + weight
 
                 if not best_cost.has_key(target) or reach_cost < best_cost[target]:
-                    best_cost[target] = reach_cost # record the cost of getting there
-                    came_from[target] = current # record how we got there
+                    best_cost[target] = reach_cost  # record the cost of getting there
+                    came_from[target] = current  # record how we got there
                     if not in_frontier(target):
                         frontier_append(reach_cost, target)
 
@@ -133,7 +137,7 @@ class WeightedDirectedGraph:
             raise Exception("Start and goal are not both vertexes in graph")
 
         i = 0
-        frontier, visited, came_from = [ (start, 0) ], [], {}
+        frontier, visited, came_from = [(start, 0)], [], {}
         while len(frontier) > 0:
             i += 1
             current, cost = frontier.pop(0)
@@ -145,14 +149,15 @@ class WeightedDirectedGraph:
 
                 # stick it in the frontier
                 came_from[target] = current
-                frontier.append( (target, cost + weight) )
+                frontier.append((target, cost + weight))
                 visited.append(target)
 
-                map_create("bfs_{0:04}".format(i), self.graph, map(lambda x : x[0], frontier), visited, came_from, start, target, goal)
+                map_create("bfs_{0:04}".format(i), self.graph, map(lambda x: x[0], frontier), visited, came_from, start,
+                           target, goal)
 
                 # but if it's the goal, bail and win
                 if target == goal:
-                    path = [ goal ]
+                    path = [goal]
                     while path[-1] != start:
                         path.append(came_from[path[-1]])
                     path.reverse()
@@ -164,43 +169,45 @@ class WeightedDirectedGraph:
         if start not in self.graph or goal not in self.graph:
             raise Exception()
 
-        frontier, visited, came_from = [(start, 0, [start])], [], {}
+        # frontier, visited, came_from = [(start, 0, [start])], [], {}
+        frontier, visited, came_from = [(start, 0)], [], {}
+        i = 0
         while frontier:
-            current, cost, path = frontier.pop()
-            # if current in visited:
-            #     continue
-            # if current == goal:
-            #     print came_from
-            #     path = [goal]
-            #     while path[-1] != start:
-            #         path.append(came_from[path[-1]])
-            #     path.reverse()
-            #     return path, cost
-            # visited.append(current)
-            # children = self.graph[current]
-            # for child in children:
-            #     frontier.append((child[0], child[1]))
-            #     print current, child
-            #     came_from[child[0]] = current
+            i += 1
+            # current, cost, path = frontier.pop()
+            current, cost = frontier.pop()
             for next, weight in self.graph[current]:
                 if next in visited:
                     continue
                 visited.append(next)
+                frontier.append((next, cost + weight))
+                came_from[next] = current
+
+                map_create("dfs_{0:04}".format(i), self.graph, map(lambda x: x[0], frontier), visited, came_from, start,
+                           next, goal)
+
                 if next == goal:
-                    return (path + [next]), (cost + weight)
-                else:
-                    frontier.append((next, cost + weight, path + [next]))
+                    # return (path + [next]), (cost + weight)
+                    path = [goal]
+                    while path[-1] != start:
+                        path.append(came_from[path[-1]])
+                    path.reverse()
+                    return path, cost + weight
+                    # frontier.append((next, cost + weight, path + [next]))
         raise Exception("no valid paths exist")
 
     def __str__(self):
         vertices = len(self.graph.keys())
-        edges = reduce(lambda ct, v : ct + len(self.graph[v]), self.graph, 0)
+        edges = reduce(lambda ct, v: ct + len(self.graph[v]), self.graph, 0)
         return "<WeightedDirectedGraph vertices={0} edges={1} >".format(vertices, edges)
+
 
 '''
 A Point is a name and a tuple (x, y). It is equatable and hashable so it can
 be used as a vertex in a WeightedDirectedGraph.
 '''
+
+
 class Point:
     def __init__(self, name, point):
         self.name = name
@@ -286,10 +293,10 @@ def buildVisibilityGraph(points, polygons):
 # a bunch of test data
 a = Point('a', (0, 30))
 b = Point('b', (210, 50))
-w = Polygon('w', [ (80, 50), (80, 25), (100, 25), (100, 50) ])
-x = Polygon('x', [ (80, 90), (80, 70), (100, 70), (100, 90) ])
-y = Polygon('y', [ (80, 20), (80, 0), (100, 0), (100, 20) ])
-z = Polygon('z', [ (180, 60), (180, 40), (200, 40), (200, 60) ])
+w = Polygon('w', [(80, 50), (80, 25), (100, 25), (100, 50)])
+x = Polygon('x', [(80, 90), (80, 70), (100, 70), (100, 90)])
+y = Polygon('y', [(80, 20), (80, 0), (100, 0), (100, 20)])
+z = Polygon('z', [(180, 60), (180, 40), (200, 40), (200, 60)])
 
 vg = buildVisibilityGraph([a, b], [w, x, y, z])
 # c = Point('c', (500, 500))
@@ -307,4 +314,3 @@ print "DFS results: {0} costs {1}".format(path, cost)
 
 path, cost = vg.breadthFirstSearch(a, b)
 print "BFS results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
-
