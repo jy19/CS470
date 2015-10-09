@@ -2,9 +2,42 @@
 
 import math
 import heapq
+import time
+from matplotlib import pyplot
 
 def distance(vfrom, vto):
 	return math.sqrt(math.pow(vto.point[0] - vfrom.point[0], 2) + math.pow(vto.point[1] - vfrom.point[1], 2))
+
+def map_create(title, graph, frontier, visited, came_from, start, active, goal):
+
+	f = pyplot.figure(0)
+	pyplot.close()
+	f = pyplot.figure(0)
+	f.suptitle(title)
+
+	# first plot all the visibility edges
+	for vertex in graph.keys():
+		for child, _ in graph[vertex]:
+			pyplot.plot([vertex.point[0], child.point[0]], [vertex.point[1], child.point[1]], '-', color='0.9')
+
+	# then plot the vertexes
+	for vertex in graph.keys():
+		fmt = 'k.'
+		if vertex == active:
+			fmt = 'bD'
+		elif vertex == goal:
+			fmt = 'g*'
+		elif vertex in frontier:
+			fmt = 'go'
+		elif vertex in visited:
+			fmt = 'rx'
+		pyplot.plot(vertex.point[0], vertex.point[1], fmt)
+
+	last = active
+	while last != start:
+		pyplot.plot([came_from[last].point[0], last.point[0]], [came_from[last].point[1], last.point[1]], 'b-')
+		last = came_from[last]
+	pyplot.savefig("{0}.png".format(title))
 
 '''
 A WeightedDirectedGraph is a graph of vertexes and directed, weighted edges.
@@ -49,6 +82,8 @@ class WeightedDirectedGraph:
 					return True
 			return False
 
+		i = 0
+
 		# start at the start node, obviously
 		frontier_append(0, start)
 
@@ -56,8 +91,12 @@ class WeightedDirectedGraph:
 		# but if we reach the goal we'll just immediately break out
 		while len(frontier) > 0:
 
+			i += 1
+
 			# grab the most promising step in the frontier
 			cost, g, current = heapq.heappop(frontier)
+
+			map_create("astar_{0:04}".format(i), self.graph, map(lambda x : x[2], frontier), visited, came_from, start, current, goal)
 
 			# if it's the goal, we win! trace the path
 			if current == goal:
@@ -89,8 +128,10 @@ class WeightedDirectedGraph:
 		if not self.graph.has_key(start) or not self.graph.has_key(goal):
 			raise Exception("Start and goal are not both vertexes in graph")
 
+		i = 0
 		frontier, visited, came_from = [ (start, 0) ], [], {}
 		while len(frontier) > 0:
+			i += 1
 			current, cost = frontier.pop(0)
 			for target, weight in self.graph[current]:
 
@@ -102,6 +143,8 @@ class WeightedDirectedGraph:
 				came_from[target] = current
 				frontier.append( (target, cost + weight) )
 				visited.append(target)
+
+				map_create("bfs_{0:04}".format(i), self.graph, map(lambda x : x[0], frontier), visited, came_from, start, target, goal)
 
 				# but if it's the goal, bail and win
 				if target == goal:
@@ -199,17 +242,22 @@ def buildVisibilityGraph(points, polygons):
 
 # a bunch of test data
 a = Point('a', (0, 30))
-b = Point('b', (110, 100))
+b = Point('b', (210, 50))
+w = Polygon('w', [ (80, 50), (80, 25), (100, 25), (100, 50) ])
 x = Polygon('x', [ (80, 90), (80, 70), (100, 70), (100, 90) ])
 y = Polygon('y', [ (80, 20), (80, 0), (100, 0), (100, 20) ])
 z = Polygon('z', [ (180, 60), (180, 40), (200, 40), (200, 60) ])
 
-vg = buildVisibilityGraph([a, b], [x, y, z])
+vg = buildVisibilityGraph([a, b], [w, x, y, z])
 # c = Point('c', (500, 500))
 # vg.addVertex(c)
 # vg.addEdge(b, c, 1000)
 print "Built visibility graph: {0}".format(vg)
+
+t0 = time.time()
 path, cost = vg.aStarSearch(a, b)
-print "A* search results: {0} costs {1}".format(path, cost)
+print "A*  results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
+
+t0 = time.time()
 path, cost = vg.breadthFirstSearch(a, b)
-print "BFS results: {0} costs {1}".format(path, cost)
+print "BFS results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
