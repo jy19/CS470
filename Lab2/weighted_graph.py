@@ -85,6 +85,34 @@ class WeightedDirectedGraph:
 
 		raise Exception("no valid paths exist")
 
+	def breadthFirstSearch(self, start, goal):
+		if not self.graph.has_key(start) or not self.graph.has_key(goal):
+			raise Exception("Start and goal are not both vertexes in graph")
+
+		frontier, visited, came_from = [ (start, 0) ], [], {}
+		while len(frontier) > 0:
+			current, cost = frontier.pop(0)
+			for target, weight in self.graph[current]:
+
+				# we might have seen this node already
+				if target in visited:
+					continue
+
+				# stick it in the frontier
+				came_from[target] = current
+				frontier.append( (target, cost + weight) )
+				visited.append(target)
+
+				# but if it's the goal, bail and win
+				if target == goal:
+					path = [ goal ]
+					while path[-1] != start:
+						path.append(came_from[path[-1]])
+					path.reverse()
+					return path, cost + weight
+
+		raise Exception("no valid paths exist")
+
 	def __str__(self):
 		vertices = len(self.graph.keys())
 		edges = reduce(lambda ct, v : ct + len(self.graph[v]), self.graph, 0)
@@ -177,9 +205,11 @@ y = Polygon('y', [ (80, 20), (80, 0), (100, 0), (100, 20) ])
 z = Polygon('z', [ (180, 60), (180, 40), (200, 40), (200, 60) ])
 
 vg = buildVisibilityGraph([a, b], [x, y, z])
-c = Point('c', (500, 500))
-vg.addVertex(c)
-vg.addEdge(b, c, 1000)
+# c = Point('c', (500, 500))
+# vg.addVertex(c)
+# vg.addEdge(b, c, 1000)
 print "Built visibility graph: {0}".format(vg)
-path, cost = vg.aStarSearch(a, c)
+path, cost = vg.aStarSearch(a, b)
 print "A* search results: {0} costs {1}".format(path, cost)
+path, cost = vg.breadthFirstSearch(a, b)
+print "BFS results: {0} costs {1}".format(path, cost)
