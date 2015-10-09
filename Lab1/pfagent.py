@@ -93,21 +93,21 @@ class pfAgent(object):
         delta_x = 0
         delta_y = 0
 
-        if has_flag:
-            base_midpoint_x = (self.base.corner1_x + self.base.corner3_x) / 2.0
-            base_midpoint_y = (self.base.corner1_y + self.base.corner3_y) / 2.0
-            attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, base_midpoint_x, base_midpoint_y,
-                                                               calc_distance(self.base.corner1_x, self.base.corner3_x,
-                                                                             self.base.corner1_y,
-                                                                             self.base.corner3_y) / 2.0)
-            delta_x += attractive_x
-            delta_y += attractive_y
-        else:
-            flag = self.get_flag(flag_color)
-            attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, flag.x, flag.y,
-                                                               float(self.constants['flagradius']), 8)
-            delta_x += attractive_x
-            delta_y += attractive_y
+        # if has_flag:
+        #     base_midpoint_x = (self.base.corner1_x + self.base.corner3_x) / 2.0
+        #     base_midpoint_y = (self.base.corner1_y + self.base.corner3_y) / 2.0
+        #     attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, base_midpoint_x, base_midpoint_y,
+        #                                                        calc_distance(self.base.corner1_x, self.base.corner3_x,
+        #                                                                      self.base.corner1_y,
+        #                                                                      self.base.corner3_y) / 2.0)
+        #     delta_x += attractive_x
+        #     delta_y += attractive_y
+        # else:
+        #     flag = self.get_flag(flag_color)
+        #     attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, flag.x, flag.y,
+        #                                                        float(self.constants['flagradius']), 100, 8)
+        #     delta_x += attractive_x
+        #     delta_y += attractive_y
 
         for obstacle in self.obstacles:
             # find mid-point of rectangle (they seem to be squares)
@@ -127,14 +127,14 @@ class pfAgent(object):
             delta_y = 0
 
         # put tangential field around enemy tanks
-        for enemy in self.enemies:
-            # print enemy.x, enemy.y
-            obstacle_x = enemy.x
-            obstacle_y = enemy.y
-            obstacle_radius = float(self.constants['tankradius'])
-            tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, 5, 2)
-            delta_x += tangential_x
-            delta_y += tangential_y
+        # for enemy in self.enemies:
+        #     # print enemy.x, enemy.y
+        #     obstacle_x = enemy.x
+        #     obstacle_y = enemy.y
+        #     obstacle_radius = float(self.constants['tankradius'])
+        #     tangential_x, tangential_y = self.tangential_field(tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, 5, 2)
+        #     delta_x += tangential_x
+        #     delta_y += tangential_y
 
         return delta_x, delta_y
 
@@ -211,7 +211,7 @@ class pfAgent(object):
         # skip = (slice(None, None, grid_step), slice(None, None, grid_step))
         for i in range(-world_size, world_size - grid_step, grid_step):
             for j in range(-world_size, world_size - grid_step, grid_step):
-                curr_dx, curr_dy = self.calc_potential_field(i, j, False, 'green')
+                curr_dx, curr_dy = self.calc_potential_field(i, j, False, 'purple')
                 row = (i + world_size) / grid_step
                 col = (j + world_size) / grid_step
 
@@ -254,8 +254,8 @@ def main():
     prev_time = time.time()
 
     # test plotting fields
-    # agent.tick(0.00)
-    # agent.plot_potential_field()
+    agent.tick(0.00)
+    agent.plot_potential_field()
 
     # Run the agent
     try:
