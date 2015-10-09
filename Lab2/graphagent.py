@@ -25,7 +25,7 @@ class GraphAgent(object):
                 self.enemy_flag = flag
                 break
         self.commands = []
-        self.goal_spread = 50
+        self.goal_spread = 40
         self.tank = self.bzrc.get_mytanks()[0]
         self.actual_goal_reached = False
 
@@ -98,7 +98,6 @@ class GraphAgent(object):
         goal_x = goal.point[0]
         goal_y = goal.point[1]
 
-        # don't know what to put for radius -- use 10 for now?
         attractive_x, attractive_y = self.attractive_field(tank_x, tank_y, goal_x, goal_y, 10)
 
         delta_x += attractive_x
@@ -155,8 +154,8 @@ class GraphAgent(object):
         # repulsive_force = (1.0 / distance) * const
         return delta_x, delta_y
 
-    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, obstacle_spread=50,
-                         beta_const=2.5):
+    def tangential_field(self, tank_x, tank_y, obstacle_x, obstacle_y, obstacle_radius, obstacle_spread=30,
+                         beta_const=4):
         """ calculates tangential fields around obstacles """
         # could basically be repulsive field but with angle changed?
         delta_x = delta_y = 0
@@ -230,8 +229,8 @@ def main():
         while True:
             time_diff = time.time() - prev_time
             agent.tick(time_diff)
-            # print agent.tank.x, agent.tank.y
-            # print agent.goal
+            print agent.tank.x, agent.tank.y
+            print agent.goal
             if agent.reached_goal(curr_goal):
                 if agent.actual_goal_reached:
                     continue
