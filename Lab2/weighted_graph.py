@@ -36,40 +36,53 @@ class WeightedDirectedGraph:
 		if not self.graph.has_key(start) or not self.graph.has_key(goal):
 			raise Exception("Start and goal are not both vertexes in graph")
 
-		visited = []
-		frontier = []
-		came_from = {}
+		frontier, visited = [], []
+		best_cost, came_from = {}, {}
 
 		def frontier_append(g, node):
 			h = distance(node, goal)
-			heapq.heappush(frontier, (g + h, g, h, node))
+			heapq.heappush(frontier, (g + h, g, node))
 
+		def in_frontier(search_target):
+			for cost, g, node in frontier:
+				if node == search_target:
+					return True
+			return False
+
+		# start at the start node, obviously
 		frontier_append(0, start)
 
-		# pq contains items (f, g, h, vertex)
-		while True:
+		# we'll keep going as long as there's stuff in the frontier
+		# but if we reach the goal we'll just immediately break out
+		while len(frontier) > 0:
 
 			# grab the most promising step in the frontier
-			n = heapq.heappop(frontier)
+			cost, g, current = heapq.heappop(frontier)
 
-			# if it's the goal, we win
-			if n[3] == goal:
-				path = [ goal ]
+			# if it's the goal, we win! trace the path
+			if current == goal:
+				path, cost = [ goal ], 0
 				while path[-1] != start:
+					cost += distance(path[-1], came_from[path[-1]])
 					path.append(came_from[path[-1]])
 				path.reverse()
-				return path
+				return path, cost
 
 			# mark as visited
-			visited.append(n[3])
+			visited.append(current)
 
 			# add each child to the frontier (if we haven't seen it yet)
-			for edge in self.graph[n[3]]:
-				if edge[0] in visited:
+			for target, weight in self.graph[current]:
+				if target in visited:
 					continue
-				reach_cost, target = n[1] + edge[1], edge[0]
-				came_from[target] = n[3] # record how we got there
-				frontier_append(reach_cost, target)
+
+				reach_cost = g + weight
+
+				if not best_cost.has_key(target) or reach_cost < best_cost[target]:
+					best_cost[target] = reach_cost # record the cost of getting there
+					came_from[target] = current # record how we got there
+					if not in_frontier(target):
+						frontier_append(reach_cost, target)
 
 		return []
 
@@ -90,8 +103,8 @@ class Point:
 		return self.name == other.name and self.point == other.point
 	def __hash__(self):
 		return hash((self.name, self.point))
-	def __str__(self):
-		return "<Point {0}=({1}, {2}) >".format(self.name, self.point[0], self.point[1])
+	def __repr__(self):
+		return "<Point \"{0}\" ({1}, {2})>".format(self.name, self.point[0], self.point[1])
 
 class Polygon:
 	def __init__(self, name, points):
@@ -122,6 +135,7 @@ def buildVisibilityGraph(points, polygons):
 		return False
 
 	def pts_intersect(A, B, C, D):
+		# more or less http://stackoverflow.com/a/1968345
 		A, B = (float(A[0]), float(A[1])), (float(B[0]), float(B[1]))
 		C, D = (float(C[0]), float(C[1])), (float(D[0]), float(D[1]))
 		Bx_Ax = B[0] - A[0]
@@ -145,14 +159,6 @@ def buildVisibilityGraph(points, polygons):
 			pt = poly.points[i]
 			g.addVertex(Point("{0}_{1}".format(poly.name, i), pt))
 
-	# add all the polygon edges
-	# for poly in polygons:
-	# 	for i in range(len(poly.points)):
-	# 		vfrom = Point("{0}_{1}".format(poly.name, i), poly.points[i])
-	# 		vtoi = (i + 1) % len(poly.points)
-	# 		vto = Point("{0}_{1}".format(poly.name, vtoi), poly.points[vtoi])
-	# 		g.addEdge(vfrom, vto, distance(vfrom, vto))
-
 	# add all edges between vertices that don't intersect a polygon edge
 	vertices = g.graph.keys()
 	for v1 in vertices:
@@ -172,8 +178,6 @@ y = Polygon('y', [ (80, 20), (80, 0), (100, 0), (100, 20) ])
 z = Polygon('z', [ (180, 60), (180, 40), (200, 40), (200, 60) ])
 
 vg = buildVisibilityGraph([a, b], [x, y, z])
-print vg
-path = vg.aStarSearch(a, b)
-print "A* search results: {0}".format(path)
-for pt in path:
-	print pt
+print "Built visibility graph: {0}".format(vg)
+path, cost = vg.aStarSearch(a, b)
+print "A* search results: {0} costs {1}".format(path, cost)
