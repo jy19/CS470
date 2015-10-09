@@ -61,9 +61,8 @@ class WeightedDirectedGraph:
 
 			# if it's the goal, we win! trace the path
 			if current == goal:
-				path, cost = [ goal ], 0
+				path = [ goal ]
 				while path[-1] != start:
-					cost += distance(path[-1], came_from[path[-1]])
 					path.append(came_from[path[-1]])
 				path.reverse()
 				return path, cost
@@ -84,7 +83,7 @@ class WeightedDirectedGraph:
 					if not in_frontier(target):
 						frontier_append(reach_cost, target)
 
-		return []
+		raise Exception("no valid paths exist")
 
 	def __str__(self):
 		vertices = len(self.graph.keys())
@@ -178,6 +177,9 @@ y = Polygon('y', [ (80, 20), (80, 0), (100, 0), (100, 20) ])
 z = Polygon('z', [ (180, 60), (180, 40), (200, 40), (200, 60) ])
 
 vg = buildVisibilityGraph([a, b], [x, y, z])
+c = Point('c', (500, 500))
+vg.addVertex(c)
+vg.addEdge(b, c, 1000)
 print "Built visibility graph: {0}".format(vg)
-path, cost = vg.aStarSearch(a, b)
+path, cost = vg.aStarSearch(a, c)
 print "A* search results: {0} costs {1}".format(path, cost)
