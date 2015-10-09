@@ -25,8 +25,9 @@ class GraphAgent(object):
                 self.enemy_flag = flag
                 break
         self.commands = []
-        self.goal_spread = 300
+        self.goal_spread = 50
         self.tank = self.bzrc.get_mytanks()[0]
+        self.actual_goal_reached = False
 
     def set_goal(self, goal, actual_goal):
         self.goal = goal
@@ -35,7 +36,10 @@ class GraphAgent(object):
     def reached_goal(self, goal):
         # if self.tank within self.goal_spread
         dist = (goal.point[0] - self.tank.x) ** 2 + (goal.point[1] - self.tank.y) ** 2
-        return dist < self.goal_spread
+        reached = dist < (self.goal_spread) ** 2
+        if reached and self.actual_goal:
+            self.actual_goal_reached = True
+        return reached
 
     def tick(self, time_diff):
         """Some time has passed; decide what to do next."""
@@ -229,7 +233,8 @@ def main():
             # print agent.tank.x, agent.tank.y
             # print agent.goal
             if agent.reached_goal(curr_goal):
-                # todo stop increasing i when actual goal reached
+                if agent.actual_goal_reached:
+                    continue
                 i += 1
                 curr_goal = path[i]
                 # if goal is not the actual goal..(the last in path)
