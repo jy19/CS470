@@ -103,8 +103,8 @@ class WeightedDirectedGraph:
             # grab the most promising step in the frontier
             cost, g, current = heapq.heappop(frontier)
 
-            map_create("astar_{0:04}".format(i), self.graph, map(lambda x: x[2], frontier), visited, came_from, start,
-                       current, goal)
+            # map_create("astar_{0:04}".format(i), self.graph, map(lambda x: x[2], frontier), visited, came_from, start,
+            #            current, goal)
 
             # if it's the goal, we win! trace the path
             if current == goal:
@@ -291,26 +291,26 @@ def buildVisibilityGraph(points, polygons):
     return g
 
 # a bunch of test data
-a = Point('a', (0, 30))
-b = Point('b', (210, 50))
-w = Polygon('w', [(80, 50), (80, 25), (100, 25), (100, 50)])
-x = Polygon('x', [(80, 90), (80, 70), (100, 70), (100, 90)])
-y = Polygon('y', [(80, 20), (80, 0), (100, 0), (100, 20)])
-z = Polygon('z', [(180, 60), (180, 40), (200, 40), (200, 60)])
+# a = Point('a', (0, 30))
+# b = Point('b', (210, 50))
+# w = Polygon('w', [(80, 50), (80, 25), (100, 25), (100, 50)])
+# x = Polygon('x', [(80, 90), (80, 70), (100, 70), (100, 90)])
+# y = Polygon('y', [(80, 20), (80, 0), (100, 0), (100, 20)])
+# z = Polygon('z', [(180, 60), (180, 40), (200, 40), (200, 60)])
 
-vg = buildVisibilityGraph([a, b], [w, x, y, z])
-# c = Point('c', (500, 500))
-# vg.addVertex(c)
-# vg.addEdge(b, c, 1000)
-print "Built visibility graph: {0}".format(vg)
-
-t0 = time.time()
-path, cost = vg.aStarSearch(a, b)
-print "A*  results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
-
-t0 = time.time()
-path, cost = vg.depth_first_search(a, b)
-print "DFS results: {0} costs {1}".format(path, cost)
-
-path, cost = vg.breadthFirstSearch(a, b)
-print "BFS results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
+# vg = buildVisibilityGraph([a, b], [w, x, y, z])
+# # c = Point('c', (500, 500))
+# # vg.addVertex(c)
+# # vg.addEdge(b, c, 1000)
+# print "Built visibility graph: {0}".format(vg)
+#
+# t0 = time.time()
+# path, cost = vg.aStarSearch(a, b)
+# print "A*  results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
+#
+# t0 = time.time()
+# path, cost = vg.depth_first_search(a, b)
+# print "DFS results: {0} costs {1}".format(path, cost)
+#
+# path, cost = vg.breadthFirstSearch(a, b)
+# print "BFS results: {0} costs {1:.3f} took {2:.2f}ns".format(path, cost, (time.time() - t0) * 1000000)
