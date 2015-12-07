@@ -22,6 +22,12 @@ sigma_x = np.array([[ 0.1, 0, 0, 0, 0, 0 ],
                     [ 0, 0, 0, 0.1, 0, 0 ],
                     [ 0, 0, 0, 0, 0.1, 0 ],
                     [ 0, 0, 0, 0, 0, 100 ]])
+# sigma_x = np.array([[ 0.1, 0, 0, 0, 0, 0 ],
+#                     [ 0, 0, 0, 0, 0, 0 ],
+#                     [ 0, 0, 0, 0, 0, 0 ],
+#                     [ 0, 0, 0, 0.1, 0, 0 ],
+#                     [ 0, 0, 0, 0, 0, 0 ],
+#                     [ 0, 0, 0, 0, 0, 0 ]])
 
 h = np.array([[1, 0, 0, 0, 0, 0],
               [0, 0, 0, 1, 0, 0]])
@@ -36,8 +42,8 @@ def get_system_model(delta_t, c):
 
 class KalmanState(object):
     def __init__(self, (x, y)):
-        self.mean = np.array([ x, 0, 0, y, 0, 0 ], dtype=float)
-        self.covariance = np.array([[ 100, 0, 0, 0, 0, 0 ],
+        self.mean = np.array([ [x], [0], [0], [y], [0], [0] ], dtype=float) # mu_t
+        self.covariance = np.array([[ 100, 0, 0, 0, 0, 0 ],     # sigma_t
                                     [ 0, 0.1, 0, 0, 0, 0 ],
                                     [ 0, 0, 0.1, 0, 0, 0 ],
                                     [ 0, 0, 0, 100, 0, 0 ],
@@ -45,14 +51,29 @@ class KalmanState(object):
                                     [ 0, 0, 0, 0, 0, 0.1 ]])
 
     def update(self, time_diff, (x, y)):
-        self.mean[0], self.mean[3] = x, y
 
         system_model = get_system_model(time_diff, 0)
-        (x, _, _, y, _, _) = np.dot(system_model, self.mean)
 
-        # estimate the location of the target tank at time t+1
-        predicted_covariance = np.zeros(2, dtype=float)
-        return (x, y), predicted_covariance
+        common = np.dot(np.dot(system_model, self.covariance), system_model.transpose()) + sigma_x
+        # print 'common', common.shape, common
+
+        gain = np.dot(np.dot(common, h.transpose()), np.linalg.inv( np.dot(np.dot(h, common), h.transpose()) + sigma_z ))
+        # print 'k_t+1', gain.shape, gain
+
+        observation = np.array([ [x], [y] ], dtype=float)
+        self.mean = np.dot(system_model, self.mean) + np.dot(gain, (observation - np.dot(np.dot(h, system_model), self.mean)))
+        # print 'mu_t+1', newMu.shape, newMu
+
+        self.covariance = np.dot(np.identity(6) - np.dot(gain, h), common)
+        # print 'sigma_t+1', newSigma.shape, newSigma
+
+    def predict(self, time_diff):
+
+        system_model = get_system_model(time_diff, 0)
+        prediction = np.dot(system_model, self.mean)
+        # print prediction
+
+        return (prediction[0][0], prediction[3][0])
 
 class KalmanTank(object):
     """Class handles all command and control logic for a teams tanks."""
@@ -74,8 +95,12 @@ class KalmanTank(object):
         for enemy in othertanks:
             model = self.kalman_models[enemy.callsign]
             noisy_position = (enemy.x, enemy.y)
-            predicted_pos, predicted_covariance = model.update(time_diff, noisy_position)
-            print "{0:10s} {1}".format(enemy.callsign, predicted_pos)
+            if enemy.callsign == "green0":
+                print "{0:10s} > {1}".format(enemy.callsign, noisy_position)
+            model.update(time_diff, noisy_position)
+            predicted_pos = model.predict(time_diff)
+            if enemy.callsign == "green0":
+                print "{0:10s} < {1}".format(enemy.callsign, predicted_pos)
 
         # try to shoot people
         pass
