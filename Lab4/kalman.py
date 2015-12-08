@@ -4,6 +4,7 @@ import sys
 import math
 import time
 import random
+import os
 import numpy as np
 
 from bzrc import BZRC, Command
@@ -49,6 +50,7 @@ class KalmanState(object):
                                     [ 0, 0, 0, 100, 0, 0 ],
                                     [ 0, 0, 0, 0, 0.1, 0 ],
                                     [ 0, 0, 0, 0, 0, 0.1 ]])
+        self.idx = 0
 
     def update(self, time_diff, (x, y)):
 
@@ -66,6 +68,22 @@ class KalmanState(object):
 
         self.covariance = np.dot(np.identity(6) - np.dot(gain, h), common)
         # print 'sigma_t+1', newSigma.shape, newSigma
+
+        sx, sy = self.covariance[0,0], self.covariance[3,3]
+        rho = self.covariance[0,3]
+
+        with open("plots/plot-{0}.gpi".format(self.idx), 'w') as ofile:
+            ofile.write("sigma_x = {0}\nsigma_y = {1}\nrho = {2}\nset output 'introduction-{3}.png'".format(sx, sy, rho, self.idx))
+            with open('gnu-template.gpi', 'r') as ifile:
+                for line in ifile:
+                    ofile.write(line)
+        # os.system('gnuplot gnu-plot.gpi')
+
+        self.idx += 1
+
+        # print 'COV'
+        # print [ [ self.covariance[0,0], self.covariance[0,3] ] ]
+        # print [ [ self.covariance[3,0], self.covariance[3,3] ] ]
 
     def predict(self, time_diff):
 

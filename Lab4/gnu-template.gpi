@@ -1,0 +1,44 @@
+# sigma_x = 5
+# sigma_y = 5
+# rho = 0
+
+set terminal png size 800,800 enhanced font 'Verdana,10'
+# set output 'introduction.png'
+
+set xrange [-400.0: 400.0]
+set yrange [-400.0: 400.0]
+set pm3d
+set view map
+unset key
+set size square
+
+# unset arrow
+# set arrow from 0, 0 to -150, 0 nohead front lt 3
+# set arrow from -150, 0 to -150, -50 nohead front lt 3
+# set arrow from -150, -50 to 0, -50 nohead front lt 3
+# set arrow from 0, -50 to 0, 0 nohead front lt 3
+# set arrow from 200, 100 to 200, 330 nohead front lt 3
+# set arrow from 200, 330 to 300, 330 nohead front lt 3
+# set arrow from 300, 330 to 300, 100 nohead front lt 3
+# set arrow from 300, 100 to 200, 100 nohead front lt 3
+
+# What color scheme to use
+# see http://gnuplot.sourceforge.net/demo_4.0/pm3dcolors.html
+#set palette gray
+#set palette color
+#set palette model XYZ functions gray**0.35, gray**0.5, gray**0.8
+set palette model RGB functions 1-gray, 1-gray, 1-gray
+
+# How fine the plotting should be, at some processing cost:
+set isosamples 100
+#set isosamples 30
+
+x = 200
+y = 200
+
+#sigma_x = 70
+#sigma_y = 100
+#rho = 0.3
+splot 1.0/(2.0 * pi * sigma_x * sigma_y * sqrt(1 - rho**2)) \
+	* exp(-1.0/2.0 * (x**2 / sigma_x**2 + y**2 / sigma_y**2 \
+	- 2.0*rho*x*y/(sigma_x*sigma_y))) with pm3d
