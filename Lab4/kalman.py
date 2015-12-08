@@ -7,6 +7,8 @@ import random
 import numpy as np
 
 from bzrc import BZRC, Command
+from error_ellipse import plot_enemy
+import matplotlib.pyplot as plt
 
 sigma = 5
 
@@ -86,6 +88,7 @@ class KalmanTank(object):
         # set up our Kalman models
         self.kalman_models = {}
         _, othertanks, _, _ = self.bzrc.get_lots_o_stuff()
+        self.iterations = 0
         for enemy in othertanks:
             self.kalman_models[enemy.callsign] = KalmanState((enemy.x, enemy.y))
 
@@ -101,6 +104,11 @@ class KalmanTank(object):
             predicted_pos = model.predict(time_diff)
             if enemy.callsign == "green0":
                 print "{0:10s} < {1}".format(enemy.callsign, predicted_pos)
+        self.iterations += 1
+        if self.iterations % 10 == 0:
+            # show plots of enemy tanks every 10 iterations
+            for enemy in othertanks:
+                self.plot_enemy_states(enemy)
 
         # try to shoot people
         pass
@@ -121,6 +129,16 @@ class KalmanTank(object):
         elif angle > math.pi:
             angle -= 2 * math.pi
         return angle
+
+    def plot_enemy_states(self, tank):
+        kalman = self.kalman_models[tank.callsign]
+        mean = (kalman.mean[0, 0], kalman.mean[3, 0])
+        cov = [[kalman.covariance[0, 0], kalman.covariance[0, 3]], [kalman.covariance[3, 0], kalman.covariance[3, 3]]]
+        print '----------------'
+        print tank.callsign, mean, cov
+        print '----------------'
+        plot_enemy(mean, cov, '{0}-{1}'.format(tank.callsign, self.iterations))
+        # plt.savefig('plots/{0}-{1}.png'.format(tank.callsign, self.iterations))
 
 def main():
     # Process CLI arguments.
