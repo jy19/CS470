@@ -144,8 +144,10 @@ def main():
     # Run the agent
     try:
         while True:
-            time_diff = time.time() - prev_time
+            now = time.time()
+            time_diff = now - prev_time
             agent.tick(time_diff)
+            prev_time = now
     except KeyboardInterrupt:
         print "Exiting due to keyboard interrupt."
         bzrc.close()
