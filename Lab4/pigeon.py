@@ -32,15 +32,17 @@ class PredictablePigeon(object):
 class WildPigeon(object):
     def __init__(self, bzrc):
         self.bzrc = bzrc
-        self.started = False
+        self.last_change = None
 
     def tick(self, time_diff):
         mytanks, _, _, _ = self.bzrc.get_lots_o_stuff()
-        if not self.started:
-            self.commands = []
-            self.commands.append(Command(mytanks[0].index, 1, 3.14, 0))
-            results = self.bzrc.do_commands(self.commands)
-            self.started = True
+        if self.last_change == None or time.time() - self.last_change > 4:
+            velocity = (random.random() * 2) - 1
+            angvel = random.random() * 2 * math.pi - math.pi
+            self.bzrc.do_commands([
+                Command(mytanks[0].index, velocity, angvel, 0)
+            ])
+            self.last_change = time.time()
 
     def move_to_position(self, tank, target_x, target_y):
         """Set command to move to given coordinates."""
