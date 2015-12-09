@@ -14,7 +14,8 @@ class PredictablePigeon(object):
         self.bzrc = bzrc
         self.constants = self.bzrc.get_constants()
         self.commands = []
-
+        self.worldsize = int(self.constants['worldsize'])
+        self.speed = 0.2
         self.started = False
 
     def tick(self, time_diff):
@@ -24,9 +25,18 @@ class PredictablePigeon(object):
 
         if not self.started:
             self.commands = []
-            self.commands.append(Command(mytanks[0].index, 1, 0, 0))
+            self.commands.append(Command(mytanks[0].index, self.speed, 0, 0))
             results = self.bzrc.do_commands(self.commands)
             self.started = True
+
+        # print mytanks[0].x, mytanks[0].y
+        #
+        # if abs(mytanks[0].x) < self.worldsize/2 and abs(mytanks[0].y) < self.worldsize/2:
+        #     print 'returning..'
+        #     return
+        #
+        # self.started = False
+        # self.speed = -self.speed
 
 
 class WildPigeon(object):
@@ -50,7 +60,7 @@ class WildPigeon(object):
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
         command = Command(tank.index, 1, 2 * relative_angle, True)
-        self.commands.append(command)
+        # self.commands.append(command)
 
     def normalize_angle(self, angle):
         """Make any angle be between +/- pi."""

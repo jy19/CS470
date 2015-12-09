@@ -68,21 +68,24 @@ def plot_cov_ellipse(cov, pos, nstd=2, ax=None, **kwargs):
 
 def plot_enemy(mean, cov, fig_name=None):
 
-    # ----this block of code scales it to the map, but makes it impossible to see ellipse----
-    # figure, ax = plt.subplots()
-    # ax.set_xlim(-400, 400)
-    # ax.set_ylim(-400, 400)
-    # ax.grid()
+    # ----this block of code scales it to the map, but makes it hard to see ellipse----
+    figure, ax = plt.subplots()
+    ax.set_xlim(-400, 400)
+    ax.set_ylim(-400, 400)
+    ax.grid()
     # --------------------------
 
     # generate some points for ellipse based on mean and covariance
-    points = np.random.multivariate_normal(mean=mean, cov=cov, size=100)
+    points = np.random.multivariate_normal(mean=mean, cov=cov, size=50)
     x, y, = points.T
-    plt.plot(x, y, 'ro')
+    plt.plot(x, y, 'b.')
 
     # Plot a transparent 3 standard deviation covariance ellipse
     plot_point_cov(points, nstd=3, alpha=0.5, color='green')
     plt.show()
+    # if fig_name:
+    #     plt.savefig('plots/{0}.png'.format(fig_name))
     if fig_name:
-        plt.savefig('plots/{0}.png'.format(fig_name))
+        plt.savefig('plots/zoomed-{0}.png'.format(fig_name))
+
     plt.gcf().clear()

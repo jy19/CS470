@@ -107,6 +107,11 @@ class KalmanTank(object):
             self.tank.controller = PDController()
         print 'current target: ', self.curr_target.callsign
 
+        try:
+            self.curr_target = self.othertanks[0]
+        except IndexError:
+            print 'No more enemies to shoot'
+
         for enemy in self.othertanks:
             model = self.kalman_models[enemy.callsign]
             noisy_position = (enemy.x, enemy.y)
@@ -116,8 +121,9 @@ class KalmanTank(object):
             predicted_pos = model.predict(time_diff)
             if enemy.callsign == "green0":
                 print "{0:10s} < {1}".format(enemy.callsign, predicted_pos)
+            # shoot enemy
             if enemy.callsign == self.curr_target.callsign:
-                self.shoot_target(self.tank, predicted_pos[0], predicted_pos[1])
+                self.shoot_target(self.tank, enemy, predicted_pos, time_diff)
 
         self.iterations += 1
 
@@ -126,14 +132,32 @@ class KalmanTank(object):
             for enemy in self.othertanks:
                 self.plot_enemy_states(enemy)
 
-    def shoot_target(self, tank, target_x, target_y):
+    def shoot_target(self, tank, enemy, prediction, time_diff):
         """Set command to shoot at given coordinates."""
+        # predict where target will be and shoot there
+        target_x, target_y = prediction
+        distance = calc_distance(tank.x, target_x, tank.y, target_y)
+        shot_v = 100  # shots travel ~100 pixels per s
+        extra_factor = 25  # extra more steps in the future
+        future_steps = int(distance / shot_v) + extra_factor  # predict number of steps into the future
+        model = self.kalman_models[enemy.callsign]
+        f_matrix = get_system_model(time_diff, 0)
+        model_mean = model.mean
+        for i in range(future_steps):
+            # model.update(time_diff, prediction)
+            model_mean = np.dot(f_matrix, model_mean)
+            prediction = (model_mean[0][0], model_mean[3][0])
+            print 'shoot target, prediction: ', prediction
+
+        # use the distance to target and velocity of shots to calculate where to shoot
+        target_x, target_y = prediction
         target_angle = math.atan2(target_y - tank.y,
                                   target_x - tank.x)
         relative_angle = self.normalize_angle(target_angle - tank.angle)
-        adjusted_angvel = tank.controller.calc_error(relative_angle)
+        # adjusted_angvel = tank.controller.calc_error(relative_angle)
         # set speed to 0 so don't move
-        command = Command(tank.index, 0, adjusted_angvel, True)
+        # command = Command(tank.index, 0, adjusted_angvel, True)
+        command = Command(tank.index, 0, 2 * relative_angle, True)
         results = self.bzrc.do_commands([command])
 
     def normalize_angle(self, angle):
@@ -149,12 +173,15 @@ class KalmanTank(object):
         kalman = self.kalman_models[tank.callsign]
         mean = (kalman.mean[0, 0], kalman.mean[3, 0])
         cov = [[kalman.covariance[0, 0], kalman.covariance[0, 3]], [kalman.covariance[3, 0], kalman.covariance[3, 3]]]
-        print '----------------'
-        print tank.callsign, mean, cov
-        print '----------------'
+        # print '----------------'
+        # print tank.callsign, mean, cov
+        # print '----------------'
         plot_enemy(mean, cov, '{0}-{1}'.format(tank.callsign, self.iterations))
         # plt.savefig('plots/{0}-{1}.png'.format(tank.callsign, self.iterations))
 
+def calc_distance(x1, x2, y1, y2):
+    distance = math.sqrt(math.pow((x1 - x2), 2) + math.pow((y1 - y2), 2))
+    return distance
 
 def main():
     # Process CLI arguments.
