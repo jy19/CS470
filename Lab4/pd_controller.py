@@ -8,4 +8,6 @@ class PDController:
         """ calculate the error in angel between current location and target """
         change_in_error = self.kp * error + self.kd * self.prev_error
         self.prev_error = error
+        # if error == self.prev_error:
+        #     return change_in_error*0.05
         return change_in_error
