@@ -99,6 +99,7 @@ class KalmanTank(object):
 
     def tick(self, time_diff):
         """Some time has passed; decide what to do next."""
+        self.othertanks = self.bzrc.get_othertanks()
         try:
             self.tank.controller
         except AttributeError:
