@@ -99,6 +99,7 @@ class KalmanTank(object):
 
     def tick(self, time_diff):
         """Some time has passed; decide what to do next."""
+        self.tank = self.bzrc.get_mytanks()[0]
         self.othertanks = self.bzrc.get_othertanks()
         try:
             self.tank.controller
@@ -132,10 +133,6 @@ class KalmanTank(object):
         relative_angle = self.normalize_angle(target_angle - tank.angle)
         adjusted_angvel = tank.controller.calc_error(relative_angle)
         # set speed to 0 so don't move
-        # for stationary target:
-        # todo not sure how to get tank to stop turning unless somehow change angvel to 0 when facing right direction
-        # tank.angle never seems to change
-        print 'shoot target, relative angle..', relative_angle
         command = Command(tank.index, 0, adjusted_angvel, True)
         results = self.bzrc.do_commands([command])
 
